@@ -195,7 +195,7 @@ if page == "RTT Dashboard":
         report_df = pd.concat([report_df, pd.DataFrame([total_row])], ignore_index=True)
 
         st.subheader("📌 FINAL DASHBOARD")
-        st.dataframe(report_df, use_container_width=True)
+        st.dataframe(report_df, width="stretch")
 
     else:
         st.info("Upload new.csv to view dashboard")
@@ -231,7 +231,7 @@ if page == "Tracker":
                 st.rerun()
 
     st.subheader("📋 Entries")
-    st.dataframe(tracker_df, use_container_width=True)
+    st.dataframe(tracker_df, width="stretch")
 
     # DELETE ENTRY (FIXED)
     if not tracker_df.empty:
