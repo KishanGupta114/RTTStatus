@@ -10,7 +10,7 @@ st.set_page_config(page_title="RTT STATUS", layout="wide")
 # PAGE SELECTOR
 # =====================================================
 page = st.sidebar.selectbox("Select Page", ["RTT Dashboard", "Tracker", "Unit Converter"])
-st.sidebar.caption("Version: v1.4.0")
+st.sidebar.caption("Version: v1.4.1")
 
 # =====================================================
 # SETTINGS
@@ -325,43 +325,88 @@ if page == "Unit Converter":
         vol_unit = st.selectbox("Volume Target Unit", ["TB", "GB", "MB"])
         thr_unit = st.selectbox("Throughput Target Unit", ["Gbps", "Mbps", "Kbps"])
 
-    # Calculations
-    results = []
-    
-    # Volume Conversions (Base 1024)
+    # Calculations for HTML Table
     vol_multiplier = {"TB": 1, "GB": 1024, "MB": 1024 * 1024}[vol_unit]
-    for kpi in volume_kpis:
-        val = st.session_state.converter_data[kpi]
-        results.append({
-            "KPI Name": kpi,
-            "Original Value (TB)": f"{val:,.2f}",
-            "Converted Value": f"{val * vol_multiplier:,.2f}",
-            "Unit": vol_unit
-        })
-
-    # Throughput Conversions (Base 1000)
     thr_multiplier = {"Gbps": 1, "Mbps": 1000, "Kbps": 1000 * 1000}[thr_unit]
+
+    # Build the HTML Table
+    table_html = f"""
+    <style>
+        .custom-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-family: sans-serif;
+            border: 2px solid black;
+        }}
+        .custom-table th, .custom-table td {{
+            border: 1px solid black;
+            padding: 12px;
+            text-align: center;
+        }}
+        .custom-table th {{
+            background-color: #f8f9fa;
+        }}
+        .vertical-text {{
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            font-weight: bold;
+            background-color: #f8f9fa;
+            width: 40px;
+        }}
+    </style>
+    <table class="custom-table">
+        <tr>
+            <th rowspan="6" class="vertical-text">DATA VOLUME</th>
+            <th>KPI</th>
+            <th>Data Volume</th>
+            <th>Unit</th>
+        </tr>
+    """
+
+    # Add Volume Rows
+    for kpi in volume_kpis:
+        val = st.session_state.converter_data[kpi] * vol_multiplier
+        table_html += f"""
+        <tr>
+            <td>{kpi}</td>
+            <td>{val:,.2f}</td>
+            <td>{vol_unit}</td>
+        </tr>
+        """
+    
+    # Add Throughput Rows
     for kpi in throughput_kpis:
-        val = st.session_state.converter_data[kpi]
-        results.append({
-            "KPI Name": kpi,
-            "Original Value (Gbps)": f"{val:,.2f}",
-            "Converted Value": f"{val * thr_multiplier:,.2f}",
-            "Unit": thr_unit
-        })
+        val = st.session_state.converter_data[kpi] * thr_multiplier
+        table_html += f"""
+        <tr>
+            <td>{kpi}</td>
+            <td>{val:,.2f}</td>
+            <td>{thr_unit}</td>
+        </tr>
+        """
+    
+    table_html += "</table>"
 
     st.divider()
     st.subheader("📋 Conversion Results")
-    res_df = pd.DataFrame(results)
-    st.dataframe(res_df, width="stretch")
+    st.markdown(table_html, unsafe_allow_html=True)
 
-    # Copy Button for Converter
+    # Prepare TSV for copy button
+    results = []
+    for kpi in volume_kpis:
+        results.append({"KPI": kpi, "Data Volume": f"{st.session_state.converter_data[kpi] * vol_multiplier:,.2f}", "Unit": vol_unit})
+    for kpi in throughput_kpis:
+        results.append({"KPI": kpi, "Data Volume": f"{st.session_state.converter_data[kpi] * thr_multiplier:,.2f}", "Unit": thr_unit})
+    
+    res_df = pd.DataFrame(results)
     tsv_data = res_df.to_csv(index=False, sep="\t").replace("'", "\\'").replace("\n", "\\n")
+    
     st.components.v1.html(f"""
         <button id="copy-conv-btn" style="
             background-color: #1560B6; color: white; border: none; 
             padding: 8px 16px; border-radius: 4px; cursor: pointer;
             font-family: sans-serif;
+            margin-top: 15px;
         ">📋 Copy Results to Clipboard</button>
         <script>
             document.getElementById('copy-conv-btn').onclick = function() {{
@@ -377,4 +422,4 @@ if page == "Unit Converter":
                 }});
             }};
         </script>
-    """, height=50)
+    """, height=70)
