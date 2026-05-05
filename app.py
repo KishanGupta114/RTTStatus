@@ -9,8 +9,8 @@ st.set_page_config(page_title="RTT STATUS", layout="wide")
 # =====================================================
 # PAGE SELECTOR
 # =====================================================
-page = st.sidebar.selectbox("Select Page", ["RTT Dashboard", "Tracker"])
-st.sidebar.caption("Version: v1.3.0")
+page = st.sidebar.selectbox("Select Page", ["RTT Dashboard", "Tracker", "Unit Converter"])
+st.sidebar.caption("Version: v1.4.0")
 
 # =====================================================
 # SETTINGS
@@ -284,3 +284,97 @@ if page == "Tracker":
 
             st.success("Deleted successfully ✅")
             st.rerun()
+
+# =====================================================
+# UNIT CONVERTER
+# =====================================================
+if page == "Unit Converter":
+
+    st.title("⚖️ KPI Unit Converter")
+    st.info("Enter values in the base units (TB for Volume, Gbps for Throughput) to see conversions.")
+
+    # KPI Definitions
+    volume_kpis = ["SAEGW-U(Total)", "Sanda Total Volume", "Totsuka Total Volume"]
+    throughput_kpis = ["Sanda Total Throughput", "Totsuka Total Throughput"]
+
+    # Initialize data if not in session state
+    if "converter_data" not in st.session_state:
+        st.session_state.converter_data = {
+            "SAEGW-U(Total)": 10949.06,
+            "Sanda Total Volume": 5222.34,
+            "Totsuka Total Volume": 5726.71,
+            "Sanda Total Throughput": 519.20,
+            "Totsuka Total Throughput": 567.38
+        }
+
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.subheader("📊 Input Values")
+        for kpi in volume_kpis + throughput_kpis:
+            unit_label = "(TB)" if kpi in volume_kpis else "(Gbps)"
+            st.session_state.converter_data[kpi] = st.number_input(
+                f"{kpi} {unit_label}", 
+                value=float(st.session_state.converter_data[kpi]),
+                format="%.2f",
+                key=f"input_{kpi}"
+            )
+
+    with col2:
+        st.subheader("🔄 Conversion Settings")
+        vol_unit = st.selectbox("Volume Target Unit", ["TB", "GB", "MB"])
+        thr_unit = st.selectbox("Throughput Target Unit", ["Gbps", "Mbps", "Kbps"])
+
+    # Calculations
+    results = []
+    
+    # Volume Conversions (Base 1024)
+    vol_multiplier = {"TB": 1, "GB": 1024, "MB": 1024 * 1024}[vol_unit]
+    for kpi in volume_kpis:
+        val = st.session_state.converter_data[kpi]
+        results.append({
+            "KPI Name": kpi,
+            "Original Value (TB)": f"{val:,.2f}",
+            "Converted Value": f"{val * vol_multiplier:,.2f}",
+            "Unit": vol_unit
+        })
+
+    # Throughput Conversions (Base 1000)
+    thr_multiplier = {"Gbps": 1, "Mbps": 1000, "Kbps": 1000 * 1000}[thr_unit]
+    for kpi in throughput_kpis:
+        val = st.session_state.converter_data[kpi]
+        results.append({
+            "KPI Name": kpi,
+            "Original Value (Gbps)": f"{val:,.2f}",
+            "Converted Value": f"{val * thr_multiplier:,.2f}",
+            "Unit": thr_unit
+        })
+
+    st.divider()
+    st.subheader("📋 Conversion Results")
+    res_df = pd.DataFrame(results)
+    st.dataframe(res_df, width="stretch")
+
+    # Copy Button for Converter
+    tsv_data = res_df.to_csv(index=False, sep="\t").replace("'", "\\'").replace("\n", "\\n")
+    st.components.v1.html(f"""
+        <button id="copy-conv-btn" style="
+            background-color: #1560B6; color: white; border: none; 
+            padding: 8px 16px; border-radius: 4px; cursor: pointer;
+            font-family: sans-serif;
+        ">📋 Copy Results to Clipboard</button>
+        <script>
+            document.getElementById('copy-conv-btn').onclick = function() {{
+                const text = '{tsv_data}';
+                navigator.clipboard.writeText(text).then(function() {{
+                    const btn = document.getElementById('copy-conv-btn');
+                    btn.innerText = '✅ Copied!';
+                    btn.style.backgroundColor = '#28a745';
+                    setTimeout(() => {{
+                        btn.innerText = '📋 Copy Results to Clipboard';
+                        btn.style.backgroundColor = '#1560B6';
+                    }}, 2000);
+                }});
+            }};
+        </script>
+    """, height=50)
