@@ -175,10 +175,10 @@ if page == "RTT Dashboard":
             report.append({
                 "Work Group": wg,
                 "Old  RTTs (Before Yesterday)": temp["OLD"].sum(),
-                "New RTTs (Yesterday)": temp["NEW"].sum(),
                 "Old RTTs resolved (Yesterday)": resolved_closed_metrics.get(wg, {}).get("Resolved_Old", 0),
+                "New RTTs (Yesterday)": temp["NEW"].sum(),
                 "Resolved New RTTs (Yesterday)": resolved_closed_metrics.get(wg, {}).get("Resolved_New", 0),
-                "Total RTTs": temp["NEW"].sum(),
+                "Total RTTs": temp["NEW"].sum() + temp["OLD"].sum(),
                 ">3 Days RTTs": temp[(temp["Ageing_Days"] >= 3) & (temp["Ageing_Days"] < 7)].shape[0],
                 ">7 Days RTTs": temp[temp["Ageing_Days"] >= 7].shape[0],
                 "Total RVS": rvs_metrics.get(wg, {}).get("Total_RVS", 0),
