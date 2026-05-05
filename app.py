@@ -10,7 +10,7 @@ st.set_page_config(page_title="RTT STATUS", layout="wide")
 # PAGE SELECTOR
 # =====================================================
 page = st.sidebar.selectbox("Select Page", ["RTT Dashboard", "Tracker", "Unit Converter"])
-st.sidebar.caption("Version: v1.4.1")
+st.sidebar.caption("Version: v1.4.2")
 
 # =====================================================
 # SETTINGS
@@ -332,34 +332,47 @@ if page == "Unit Converter":
     # Build the HTML Table
     table_html = f"""
     <style>
+        .custom-table-container {{
+            margin-top: 20px;
+            margin-bottom: 20px;
+            background-color: white; /* Force white background for the table area */
+            padding: 10px;
+            border-radius: 4px;
+        }}
         .custom-table {{
             width: 100%;
             border-collapse: collapse;
-            font-family: sans-serif;
+            font-family: Arial, sans-serif;
             border: 2px solid black;
+            color: black; /* Force black text for visibility */
         }}
         .custom-table th, .custom-table td {{
             border: 1px solid black;
-            padding: 12px;
+            padding: 10px;
             text-align: center;
+            vertical-align: middle;
+            font-size: 14px;
         }}
         .custom-table th {{
-            background-color: #f8f9fa;
+            background-color: #f2f2f2;
+            font-weight: bold;
         }}
-        .vertical-text {{
+        .vertical-header {{
             writing-mode: vertical-rl;
             transform: rotate(180deg);
             font-weight: bold;
-            background-color: #f8f9fa;
-            width: 40px;
+            background-color: #f2f2f2;
+            width: 30px;
+            text-transform: uppercase;
         }}
     </style>
+    <div class="custom-table-container">
     <table class="custom-table">
         <tr>
-            <th rowspan="6" class="vertical-text">DATA VOLUME</th>
-            <th>KPI</th>
-            <th>Data Volume</th>
-            <th>Unit</th>
+            <th rowspan="6" class="vertical-header">DATA VOLUME</th>
+            <th style="background-color: #f2f2f2;">KPI</th>
+            <th style="background-color: #f2f2f2;">Data Volume</th>
+            <th style="background-color: #f2f2f2;">Unit</th>
         </tr>
     """
 
@@ -368,7 +381,7 @@ if page == "Unit Converter":
         val = st.session_state.converter_data[kpi] * vol_multiplier
         table_html += f"""
         <tr>
-            <td>{kpi}</td>
+            <td style="text-align: left;">{kpi}</td>
             <td>{val:,.2f}</td>
             <td>{vol_unit}</td>
         </tr>
@@ -379,13 +392,13 @@ if page == "Unit Converter":
         val = st.session_state.converter_data[kpi] * thr_multiplier
         table_html += f"""
         <tr>
-            <td>{kpi}</td>
+            <td style="text-align: left;">{kpi}</td>
             <td>{val:,.2f}</td>
             <td>{thr_unit}</td>
         </tr>
         """
     
-    table_html += "</table>"
+    table_html += "</table></div>"
 
     st.divider()
     st.subheader("📋 Conversion Results")
