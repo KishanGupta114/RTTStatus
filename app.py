@@ -10,7 +10,7 @@ st.set_page_config(page_title="RTT STATUS", layout="wide")
 # PAGE SELECTOR
 # =====================================================
 page = st.sidebar.selectbox("Select Page", ["RTT Dashboard", "Tracker", "Unit Converter"])
-st.sidebar.caption("Version: v1.4.2")
+st.sidebar.caption("Version: v1.4.3")
 
 # =====================================================
 # SETTINGS
@@ -325,84 +325,79 @@ if page == "Unit Converter":
         vol_unit = st.selectbox("Volume Target Unit", ["TB", "GB", "MB"])
         thr_unit = st.selectbox("Throughput Target Unit", ["Gbps", "Mbps", "Kbps"])
 
-    # Calculations for HTML Table
+    # Build the HTML Table
     vol_multiplier = {"TB": 1, "GB": 1024, "MB": 1024 * 1024}[vol_unit]
     thr_multiplier = {"Gbps": 1, "Mbps": 1000, "Kbps": 1000 * 1000}[thr_unit]
 
-    # Build the HTML Table
-    table_html = f"""
+    # Initialize Table String
+    html_content = []
+    html_content.append("""
     <style>
-        .custom-table-container {{
-            margin-top: 20px;
-            margin-bottom: 20px;
-            background-color: white; /* Force white background for the table area */
-            padding: 10px;
-            border-radius: 4px;
-        }}
-        .custom-table {{
+        .converter-container {
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .converter-table {
             width: 100%;
             border-collapse: collapse;
-            font-family: Arial, sans-serif;
+            color: black !important;
             border: 2px solid black;
-            color: black; /* Force black text for visibility */
-        }}
-        .custom-table th, .custom-table td {{
+        }
+        .converter-table th, .converter-table td {
             border: 1px solid black;
             padding: 10px;
             text-align: center;
             vertical-align: middle;
-            font-size: 14px;
-        }}
-        .custom-table th {{
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }}
-        .vertical-header {{
+        }
+        .header-bg { background-color: #eeeeee; font-weight: bold; }
+        .vertical-text {
             writing-mode: vertical-rl;
             transform: rotate(180deg);
             font-weight: bold;
-            background-color: #f2f2f2;
+            background-color: #eeeeee;
             width: 30px;
-            text-transform: uppercase;
-        }}
+        }
     </style>
-    <div class="custom-table-container">
-    <table class="custom-table">
+    <div class="converter-container">
+    <table class="converter-table">
         <tr>
-            <th rowspan="6" class="vertical-header">DATA VOLUME</th>
-            <th style="background-color: #f2f2f2;">KPI</th>
-            <th style="background-color: #f2f2f2;">Data Volume</th>
-            <th style="background-color: #f2f2f2;">Unit</th>
+            <th rowspan="6" class="vertical-text">DATA VOLUME</th>
+            <th class="header-bg">KPI</th>
+            <th class="header-bg">Data Volume</th>
+            <th class="header-bg">Unit</th>
         </tr>
-    """
+    """)
 
     # Add Volume Rows
     for kpi in volume_kpis:
         val = st.session_state.converter_data[kpi] * vol_multiplier
-        table_html += f"""
+        html_content.append(f"""
         <tr>
             <td style="text-align: left;">{kpi}</td>
             <td>{val:,.2f}</td>
             <td>{vol_unit}</td>
         </tr>
-        """
+        """)
     
     # Add Throughput Rows
     for kpi in throughput_kpis:
         val = st.session_state.converter_data[kpi] * thr_multiplier
-        table_html += f"""
+        html_content.append(f"""
         <tr>
             <td style="text-align: left;">{kpi}</td>
             <td>{val:,.2f}</td>
             <td>{thr_unit}</td>
         </tr>
-        """
+        """)
     
-    table_html += "</table></div>"
-
+    html_content.append("</table></div>")
+    
+    # Render HTML
     st.divider()
     st.subheader("📋 Conversion Results")
-    st.markdown(table_html, unsafe_allow_html=True)
+    st.markdown("".join(html_content), unsafe_allow_html=True)
 
     # Prepare TSV for copy button
     results = []
