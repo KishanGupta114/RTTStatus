@@ -10,7 +10,7 @@ st.set_page_config(page_title="RTT STATUS", layout="wide")
 # PAGE SELECTOR
 # =====================================================
 page = st.sidebar.selectbox("Select Page", ["RTT Dashboard", "Tracker"])
-st.sidebar.caption("Version: v1.2.1")
+st.sidebar.caption("Version: v1.3.0")
 
 # =====================================================
 # SETTINGS
@@ -196,6 +196,40 @@ if page == "RTT Dashboard":
         report_df = pd.concat([report_df, pd.DataFrame([total_row])], ignore_index=True)
 
         st.subheader("📌 FINAL DASHBOARD")
+        
+        # COPY TO CLIPBOARD BUTTON
+        tsv_data = report_df.to_csv(index=False, sep="\t").replace("'", "\\'").replace("\n", "\\n")
+        copy_button_html = f"""
+            <button id="copy-btn" style="
+                background-color: #1560B6; 
+                color: white; 
+                border: none; 
+                padding: 8px 16px; 
+                border-radius: 4px; 
+                cursor: pointer;
+                font-family: sans-serif;
+                margin-bottom: 10px;
+            ">📋 Copy Table to Clipboard</button>
+            
+            <script>
+                document.getElementById('copy-btn').onclick = function() {{
+                    const text = '{tsv_data}';
+                    navigator.clipboard.writeText(text).then(function() {{
+                        const btn = document.getElementById('copy-btn');
+                        btn.innerText = '✅ Copied!';
+                        btn.style.backgroundColor = '#28a745';
+                        setTimeout(() => {{
+                            btn.innerText = '📋 Copy Table to Clipboard';
+                            btn.style.backgroundColor = '#1560B6';
+                        }}, 2000);
+                    }}, function(err) {{
+                        console.error('Could not copy text: ', err);
+                    }});
+                }};
+            </script>
+        """
+        st.components.v1.html(copy_button_html, height=50)
+
         st.dataframe(report_df, width="stretch")
 
     else:
