@@ -10,6 +10,7 @@ st.set_page_config(page_title="RTT STATUS", layout="wide")
 # PAGE SELECTOR
 # =====================================================
 page = st.sidebar.selectbox("Select Page", ["RTT Dashboard", "Tracker"])
+st.sidebar.caption("Version: v1.2.0")
 
 # =====================================================
 # SETTINGS
