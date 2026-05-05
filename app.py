@@ -10,7 +10,7 @@ st.set_page_config(page_title="RTT STATUS", layout="wide")
 # PAGE SELECTOR
 # =====================================================
 page = st.sidebar.selectbox("Select Page", ["RTT Dashboard", "Tracker", "Unit Converter"])
-st.sidebar.caption("Version: v1.4.3")
+st.sidebar.caption("Version: v1.5.0")
 
 # =====================================================
 # SETTINGS
@@ -291,143 +291,81 @@ if page == "Tracker":
 if page == "Unit Converter":
 
     st.title("⚖️ KPI Unit Converter")
-    st.info("Enter values in the base units (TB for Volume, Gbps for Throughput) to see conversions.")
 
     # KPI Definitions
     volume_kpis = ["SAEGW-U(Total)", "Sanda Total Volume", "Totsuka Total Volume"]
     throughput_kpis = ["Sanda Total Throughput", "Totsuka Total Throughput"]
 
-    # Initialize data if not in session state
+    # Initialize session state
     if "converter_data" not in st.session_state:
-        st.session_state.converter_data = {
-            "SAEGW-U(Total)": 10949.06,
-            "Sanda Total Volume": 5222.34,
-            "Totsuka Total Volume": 5726.71,
-            "Sanda Total Throughput": 519.20,
-            "Totsuka Total Throughput": 567.38
-        }
+        st.session_state.converter_data = {k: None for k in volume_kpis + throughput_kpis}
+        st.session_state.conversion_results = None
 
-    col1, col2 = st.columns([2, 1])
+    # Step 1: Unit Configuration Row
+    st.subheader("⚙️ Settings")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: src_vol = st.selectbox("From (Vol)", ["GB", "TB", "MB"])
+    with c2: target_vol = st.selectbox("To (Vol)", ["TB", "GB", "MB"])
+    with c3: src_thr = st.selectbox("From (Thr)", ["Mbps", "Gbps", "Kbps"])
+    with c4: target_thr = st.selectbox("To (Thr)", ["Gbps", "Mbps", "Kbps"])
 
-    with col1:
-        st.subheader("📊 Input Values")
-        for kpi in volume_kpis + throughput_kpis:
-            unit_label = "(TB)" if kpi in volume_kpis else "(Gbps)"
-            st.session_state.converter_data[kpi] = st.number_input(
-                f"{kpi} {unit_label}", 
-                value=float(st.session_state.converter_data[kpi]),
-                format="%.2f",
-                key=f"input_{kpi}"
-            )
-
-    with col2:
-        st.subheader("🔄 Conversion Settings")
-        vol_unit = st.selectbox("Volume Target Unit", ["TB", "GB", "MB"])
-        thr_unit = st.selectbox("Throughput Target Unit", ["Gbps", "Mbps", "Kbps"])
-
-    # Build the HTML Table
-    vol_multiplier = {"TB": 1, "GB": 1024, "MB": 1024 * 1024}[vol_unit]
-    thr_multiplier = {"Gbps": 1, "Mbps": 1000, "Kbps": 1000 * 1000}[thr_unit]
-
-    # Initialize Table String
-    html_content = []
-    html_content.append("""
-    <style>
-        .converter-container {
-            background-color: white;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-        .converter-table {
-            width: 100%;
-            border-collapse: collapse;
-            color: black !important;
-            border: 2px solid black;
-        }
-        .converter-table th, .converter-table td {
-            border: 1px solid black;
-            padding: 10px;
-            text-align: center;
-            vertical-align: middle;
-        }
-        .header-bg { background-color: #eeeeee; font-weight: bold; }
-        .vertical-text {
-            writing-mode: vertical-rl;
-            transform: rotate(180deg);
-            font-weight: bold;
-            background-color: #eeeeee;
-            width: 30px;
-        }
-    </style>
-    <div class="converter-container">
-    <table class="converter-table">
-        <tr>
-            <th rowspan="6" class="vertical-text">DATA VOLUME</th>
-            <th class="header-bg">KPI</th>
-            <th class="header-bg">Data Volume</th>
-            <th class="header-bg">Unit</th>
-        </tr>
-    """)
-
-    # Add Volume Rows
-    for kpi in volume_kpis:
-        val = st.session_state.converter_data[kpi] * vol_multiplier
-        html_content.append(f"""
-        <tr>
-            <td style="text-align: left;">{kpi}</td>
-            <td>{val:,.2f}</td>
-            <td>{vol_unit}</td>
-        </tr>
-        """)
-    
-    # Add Throughput Rows
-    for kpi in throughput_kpis:
-        val = st.session_state.converter_data[kpi] * thr_multiplier
-        html_content.append(f"""
-        <tr>
-            <td style="text-align: left;">{kpi}</td>
-            <td>{val:,.2f}</td>
-            <td>{thr_unit}</td>
-        </tr>
-        """)
-    
-    html_content.append("</table></div>")
-    
-    # Render HTML
+    # Step 2: Data Input
     st.divider()
-    st.subheader("📋 Conversion Results")
-    st.markdown("".join(html_content), unsafe_allow_html=True)
-
-    # Prepare TSV for copy button
-    results = []
+    st.subheader("✍️ Enter Data")
+    
+    # Volume Inputs
     for kpi in volume_kpis:
-        results.append({"KPI": kpi, "Data Volume": f"{st.session_state.converter_data[kpi] * vol_multiplier:,.2f}", "Unit": vol_unit})
+        st.session_state.converter_data[kpi] = st.number_input(
+            f"{kpi} ({src_vol})", 
+            value=st.session_state.converter_data[kpi],
+            step=0.0001,
+            format="%g",
+            placeholder="Type value..."
+        )
+    
+    # Throughput Inputs
     for kpi in throughput_kpis:
-        results.append({"KPI": kpi, "Data Volume": f"{st.session_state.converter_data[kpi] * thr_multiplier:,.2f}", "Unit": thr_unit})
-    
-    res_df = pd.DataFrame(results)
-    tsv_data = res_df.to_csv(index=False, sep="\t").replace("'", "\\'").replace("\n", "\\n")
-    
-    st.components.v1.html(f"""
-        <button id="copy-conv-btn" style="
-            background-color: #1560B6; color: white; border: none; 
-            padding: 8px 16px; border-radius: 4px; cursor: pointer;
-            font-family: sans-serif;
-            margin-top: 15px;
-        ">📋 Copy Results to Clipboard</button>
-        <script>
-            document.getElementById('copy-conv-btn').onclick = function() {{
-                const text = '{tsv_data}';
-                navigator.clipboard.writeText(text).then(function() {{
-                    const btn = document.getElementById('copy-conv-btn');
-                    btn.innerText = '✅ Copied!';
-                    btn.style.backgroundColor = '#28a745';
-                    setTimeout(() => {{
-                        btn.innerText = '📋 Copy Results to Clipboard';
-                        btn.style.backgroundColor = '#1560B6';
-                    }}, 2000);
-                }});
-            }};
-        </script>
-    """, height=70)
+        st.session_state.converter_data[kpi] = st.number_input(
+            f"{kpi} ({src_thr})", 
+            value=st.session_state.converter_data[kpi],
+            step=0.0001,
+            format="%g",
+            placeholder="Type value..."
+        )
+
+    # Step 3: Convert Button
+    if st.button("🚀 CONVERT", use_container_width=True):
+        vol_to_base = {"TB": 1, "GB": 1/1024, "MB": 1/(1024*1024)}[src_vol]
+        thr_to_base = {"Gbps": 1, "Mbps": 1/1000, "Kbps": 1/(1000*1000)}[src_thr]
+        base_to_vol = {"TB": 1, "GB": 1024, "MB": 1024 * 1024}[target_vol]
+        base_to_thr = {"Gbps": 1, "Mbps": 1000, "Kbps": 1000 * 1000}[target_thr]
+        
+        results = []
+        for kpi in volume_kpis:
+            if st.session_state.converter_data[kpi] is not None:
+                val = st.session_state.converter_data[kpi] * vol_to_base * base_to_vol
+                # Truncate to 2 decimal places (no rounding)
+                truncated_val = int(val * 100) / 100.0
+                results.append({"KPI": kpi, "Data Volume": f"{truncated_val:,.2f}", "Unit": target_vol})
+            
+        for kpi in throughput_kpis:
+            if st.session_state.converter_data[kpi] is not None:
+                val = st.session_state.converter_data[kpi] * thr_to_base * base_to_thr
+                # Truncate to 2 decimal places (no rounding)
+                truncated_val = int(val * 100) / 100.0
+                results.append({"KPI": kpi, "Data Volume": f"{truncated_val:,.2f}", "Unit": target_thr})
+        
+        st.session_state.conversion_results = pd.DataFrame(results)
+
+    # Step 4: Results
+    if st.session_state.conversion_results is not None:
+        st.divider()
+        st.subheader("📋 Results")
+        st.dataframe(st.session_state.conversion_results, width="stretch")
+        
+        # Copy
+        tsv = st.session_state.conversion_results.to_csv(index=False, sep="\t").replace("'", "\\'").replace("\n", "\\n")
+        st.components.v1.html(f"""
+            <button id="copy-btn" style="background-color:#1560B6;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-family:sans-serif;">📋 Copy to Clipboard</button>
+            <script>document.getElementById('copy-btn').onclick=function(){{navigator.clipboard.writeText('{tsv}');this.innerText='✅ Copied!';setTimeout(()=>this.innerText='📋 Copy to Clipboard',2000);}}</script>
+        """, height=50)
